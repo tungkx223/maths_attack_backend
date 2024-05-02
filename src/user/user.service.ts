@@ -30,8 +30,10 @@ export class UserService {
     const newUser = await new this.userModel({
       username: data.username,
       password: await hash(data.password, 10),
-      name: data.name,
-      age: data.age
+      elo: 1000,
+      win: 0,
+      draw: 0,
+      lose: 0,
     }).save();
 
     if (newUser) return {

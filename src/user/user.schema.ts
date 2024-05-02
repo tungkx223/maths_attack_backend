@@ -11,14 +11,20 @@ export class User {
   @Prop({ required: true, trim: true })
   password: string;
 
-  @Prop({ trim: true })
-  name: string;
-
-  @Prop()
-  age: number;
-
   @Prop()
   refresh_token: string;
+
+  @Prop({required: true})
+  elo: number;
+
+  @Prop({required: true})
+  win: number;
+
+  @Prop({required: true})
+  draw: number;
+
+  @Prop({required: true})
+  lose: number;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
