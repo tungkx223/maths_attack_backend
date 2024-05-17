@@ -5,7 +5,7 @@ import { hash } from 'bcrypt';
 
 import { User, UserDocument } from './user.schema';
 import { SignUpDto } from './user.dto';
-import { DATABASE_ERROR, EXIST_USERNAME, SUCCESSFUL } from 'src/returnCode';
+import { DATABASE_ERROR, EXIST_USERNAME, SUCCESSFUL, WRONG_USERNAME } from 'src/returnCode';
 
 @Injectable()
 export class UserService {
@@ -83,6 +83,32 @@ export class UserService {
         code: DATABASE_ERROR,
         message: "Undefine server's error"
       };
+    }
+  }
+
+  async getUserData(username: string) {
+    const user = await this.userModel.findOne({
+      username: username,
+    });
+
+    if (user) {
+      return {
+        code: SUCCESSFUL,
+        message: 'Successfully',
+        data: {
+          'username': user.username,
+          'elo': user.elo,
+          'win': user.win,
+          'draw': user.draw,
+          'lose': user.lose,
+        },
+      }
+    } else {
+      return {
+        code: WRONG_USERNAME,
+        message: 'Username does not exist',
+        data: {}
+      }
     }
   }
 }

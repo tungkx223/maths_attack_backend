@@ -31,10 +31,11 @@ export class AppGateway {
       client.disconnect();
       return;
     }
-
+    
     const userData = this.jwtService.decode(client.handshake.auth?.token, {
       json: true,
     }) as { username: string; id: string };
+    
     client.join(userData.id);
     client.handshake.auth.id = userData.id;
 

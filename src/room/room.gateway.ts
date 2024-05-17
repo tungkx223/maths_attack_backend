@@ -56,6 +56,16 @@ export class RoomGateway {
     this.logger.log(`client: ${client.id} join room: room-${roomKey}`);
 
     if (roomKey) await client.join(`room-${roomKey}`);
+    var response = await this.roomService.checkStartGame(roomKey);
+    
+    if (response.code == 1) {
+      this.server.to(`room-${roomKey}`).emit('startGame', {
+        code: SUCCESSFUL,
+        message: 'Start the match',
+        data: response.data,
+      });
+    }
+
     return joinRoomData;
   }
 
@@ -73,5 +83,70 @@ export class RoomGateway {
         this.server.to(e).emit('user-leave-room', '');
       }
     });
+  }
+
+  @SubscribeMessage('userEndSet')
+  async userEndSet(
+    @MessageBody() roomKey: string,
+    @MessageBody() userCode: number,
+  ): Promise<any> {
+    this.Logger('userEndSet');
+
+    var response = await this.roomService.userEndSet(roomKey, userCode);
+
+    // all player has ended their playing session...
+    if (response.code == 1) {
+      this.server.to(`room-${roomKey}`).emit('endOfSet', {
+        code: SUCCESSFUL,
+        message: 'Set has ended',
+        data: response.data,
+      });
+
+      var getResultAfterSet = await this.roomService.getResultAfterSet(roomKey);
+      this.server.to(`room-${roomKey}`).emit('endOfGame', {
+        code: SUCCESSFUL,
+        message: 'Game has ended',
+        data: getResultAfterSet.data,
+      });
+    }
+  }
+
+  @SubscribeMessage('userStartSet')
+  async userStartSet(
+    @MessageBody() roomKey: string,
+    @MessageBody() userCode: number,
+  ) {
+    this.Logger('userStartSet');
+
+    var response = await this.roomService.userStartSet(roomKey, userCode);
+
+    // all player has ended their playing session...
+    if (response.code == 1) {
+      this.server.to(`room-${roomKey}`).emit('startOfSet', {
+        code: SUCCESSFUL,
+        message: 'Start the set',
+        data: response.data,
+      });
+    }
+  }
+
+  @SubscribeMessage('userSubmit')
+  async userSubmit(
+    @MessageBody() roomKey: string,
+    @MessageBody() userCode: number,
+    @MessageBody() setCode: number,
+    @MessageBody() addedPoint: number,
+  ) {
+    this.Logger('userSubmit');
+
+    var response = await this.roomService.userSubmit(roomKey, userCode, setCode, addedPoint);
+
+    if (response.code == 1) {
+      this.server.to(`room-${roomKey}`).emit('userAnswer', {
+        code: SUCCESSFUL,
+        message: 'Submit answer successfully',
+        data: response.data,
+      });
+    }
   }
 }

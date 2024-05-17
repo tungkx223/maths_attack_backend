@@ -1,5 +1,6 @@
-import { Controller, Logger } from '@nestjs/common';
+import { Controller, Get, Logger, Req, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
+import { AccessTokenGuard } from 'src/auth/guards/accessToken.guard';
 
 @Controller('api/user')
 export class UserController {
@@ -12,5 +13,12 @@ export class UserController {
   // Log function
   Logger(functionName: string, input: any = null) {
     this.logger.log(`Function: ${functionName} | input:`, input);
+  }
+
+  @Get('get-user-data')
+  @UseGuards(AccessTokenGuard)
+  async getUserData(@Req() req: any) {
+    this.Logger('getUserData');
+    return await this.service.getUserData(req.username);
   }
 }

@@ -34,6 +34,7 @@ export class AppModule {
         { path: 'api/auth/change-password', method: RequestMethod.ALL },
         { path: 'api/auth/refresh-token', method: RequestMethod.ALL },
         { path: 'api/auth/logout', method: RequestMethod.ALL },
+        { path: 'api/user/get-user-data', method: RequestMethod.ALL, },
       )
   }
 }

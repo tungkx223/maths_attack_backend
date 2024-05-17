@@ -10,7 +10,6 @@ import { RefreshTokenGuard } from './guards/refreshToken.guard';
 export class AuthController {
   constructor(
     private authService: AuthService,
-
     private userService: UserService
   ) {}
 
@@ -33,7 +32,12 @@ export class AuthController {
       }
     }
 
-    return await this.userService.createUser(signUpData);
+    const user = await this.userService.createUser(signUpData);
+    if (user.code) {
+      return user;
+    } else {
+      return await this.authService.signIn(signUpData.username, signUpData.password); 
+    }
   }
 
   @Post('signin')
