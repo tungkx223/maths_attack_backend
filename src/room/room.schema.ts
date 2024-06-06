@@ -22,16 +22,19 @@ export class Room {
   @Prop({ required: true, trim: true, unique: true })
   key: string;
 
+  @Prop({type: Boolean})
+  isElo: boolean;
+
   @Prop({ type: [{ type: String, ref: 'User' }] })
   members: string[];
 
   @Prop({type: [{type: Number}]})
   games: number[];
 
-  @Prop({type: [{type: Player}]})
+  @Prop({type: Player})
   user1: Player;
 
-  @Prop({type: [{type: Player}]})
+  @Prop({type: Player})
   user2: Player;
 
   @Prop({type: Number})

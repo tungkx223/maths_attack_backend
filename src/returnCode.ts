@@ -6,3 +6,4 @@ export const WRONG_USERNAME = 4;
 export const WRONG_PASSWORD = 5;
 export const ROOM_NOT_FOUND = 6;
 export const FULL_MEMBER = 7;
+export const USER_IN_USE = 8;

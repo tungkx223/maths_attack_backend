@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { compare } from 'bcrypt';
 
-import { SUCCESSFUL, WRONG_PASSWORD, WRONG_USERNAME } from 'src/returnCode';
+import { SUCCESSFUL, USER_IN_USE, WRONG_PASSWORD, WRONG_USERNAME } from 'src/returnCode';
 import { UserService } from 'src/user/user.service';
 import { jwtConstants } from './constants';
 
@@ -22,6 +22,12 @@ export class AuthService {
       code: WRONG_USERNAME,
       message: 'Username does not exist',
       data: {}
+    }
+
+    if (!user.refresh_token) return {
+      code: USER_IN_USE,
+      message: "This account is already in use.",
+      data: {},
     }
 
     // check password

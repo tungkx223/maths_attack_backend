@@ -16,7 +16,7 @@ import { AppGateway } from './app.gateway';
     UserModule,
     RoomModule,
     AuthModule,
-    MongooseModule.forRoot('mongodb://127.0.0.1:27017/mathsattack'),
+    MongooseModule.forRoot('mongodb+srv://XuanTung:hRLcDoQjYyjyOPwO@cluster0.kkonh7o.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'),
     JwtModule.register({})
   ],
   controllers: [],

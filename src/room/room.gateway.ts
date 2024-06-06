@@ -2,7 +2,8 @@ import { Logger } from '@nestjs/common';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { RoomService } from './room.service';
-import { SUCCESSFUL } from 'src/returnCode';
+import { ROOM_NOT_FOUND, SUCCESSFUL } from 'src/returnCode';
+import { json } from 'stream/consumers';
 
 @WebSocketGateway()
 export class RoomGateway {
@@ -21,12 +22,13 @@ export class RoomGateway {
 
   @SubscribeMessage('createRoom')
   async createRoom(
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
+    @MessageBody() isElo: boolean,
   ): Promise<any> {
-    this.Logger('createRoom');
+    this.Logger('createRoom', isElo);
 
     // create a new room and get room key
-    const roomKey = await this.roomService.createRoom(client.handshake.auth.id);
+    const roomKey = await this.roomService.createRoom(client.handshake.auth.id, isElo);
     console.log(roomKey);
     // join client socket to the room
     client.join(`room-${roomKey}`);
@@ -58,7 +60,7 @@ export class RoomGateway {
     if (roomKey) await client.join(`room-${roomKey}`);
     var response = await this.roomService.checkStartGame(roomKey);
     
-    if (response.code == 1) {
+    if (response.code === 1) {
       this.server.to(`room-${roomKey}`).emit('startGame', {
         code: SUCCESSFUL,
         message: 'Start the match',
@@ -75,78 +77,156 @@ export class RoomGateway {
   ): Promise<any> {
     this.Logger('leaveRoom');
 
-    client.rooms.forEach((e) => {
+    client.rooms.forEach(async (e) => {
       if (e.includes('room')) {
         const roomKey = e.replace('room-', '');
-        this.roomService.leaveRoom(client.handshake.auth.id, roomKey);
+        var response = await this.roomService.leaveRoom(client.handshake.auth.id, roomKey);
+        if (response.code === 1) {
+          this.server.to(e).emit('endOfMatch', {
+            code: SUCCESSFUL,
+            message: 'Match has ended',
+            data: response.data,
+          });
+        }
+        
         client.leave(e);
-        this.server.to(e).emit('user-leave-room', '');
+        this.server.to(e).emit('user-leave-room', {
+          code: SUCCESSFUL,
+          message: `User ${response.index} left room`,
+          data: {
+            userCode: response.index,
+          }
+        });
       }
     });
+
+    return {
+      code: SUCCESSFUL,
+      message: "Leave room successfully",
+      data: {},
+    }
   }
 
   @SubscribeMessage('userEndSet')
   async userEndSet(
-    @MessageBody() roomKey: string,
-    @MessageBody() userCode: number,
+    @MessageBody() message: string,
   ): Promise<any> {
-    this.Logger('userEndSet');
+    const data = JSON.parse(message);
+    var roomKey = data.roomKey;
+    var userCode = data.userCode;
 
+    this.Logger('userEndSet', JSON.stringify({
+      'roomKey': roomKey,
+      'userCode': userCode,
+    }));
     var response = await this.roomService.userEndSet(roomKey, userCode);
 
     // all player has ended their playing session...
-    if (response.code == 1) {
+    if (response.code === 1) {
       this.server.to(`room-${roomKey}`).emit('endOfSet', {
         code: SUCCESSFUL,
         message: 'Set has ended',
         data: response.data,
       });
+    }
 
-      var getResultAfterSet = await this.roomService.getResultAfterSet(roomKey);
-      this.server.to(`room-${roomKey}`).emit('endOfGame', {
-        code: SUCCESSFUL,
-        message: 'Game has ended',
-        data: getResultAfterSet.data,
-      });
+    return {
+      code: SUCCESSFUL,
+      message: "End set successfully",
+      data: {},
     }
   }
 
   @SubscribeMessage('userStartSet')
   async userStartSet(
-    @MessageBody() roomKey: string,
-    @MessageBody() userCode: number,
+    @MessageBody() message: string,
   ) {
-    this.Logger('userStartSet');
+    const data = JSON.parse(message);
+    var roomKey = data.roomKey;
+    var userCode = data.userCode;
 
+    this.Logger('userStartSet', JSON.stringify({
+      'roomKey': roomKey,
+      'userCode': userCode,
+    }));
     var response = await this.roomService.userStartSet(roomKey, userCode);
 
     // all player has ended their playing session...
-    if (response.code == 1) {
+    if (response.code === 1) {
       this.server.to(`room-${roomKey}`).emit('startOfSet', {
         code: SUCCESSFUL,
         message: 'Start the set',
         data: response.data,
       });
     }
+
+    return {
+      code: SUCCESSFUL,
+      message: "Start set successfully",
+      data: {},
+    }
   }
 
   @SubscribeMessage('userSubmit')
   async userSubmit(
-    @MessageBody() roomKey: string,
-    @MessageBody() userCode: number,
-    @MessageBody() setCode: number,
-    @MessageBody() addedPoint: number,
+    @MessageBody() message: string,
   ) {
-    this.Logger('userSubmit');
+    const data = JSON.parse(message);
+    var roomKey = data.roomKey;
+    var userCode = data.userCode;
+    var setCode = data.setCode;
+    var addedPoint = data.addedPoint;
 
+    this.Logger('userSubmit', JSON.stringify({
+      'roomKey': roomKey,
+      'userCode': userCode,
+      'setCode': setCode,
+      'addedPoint': addedPoint,
+    }));
     var response = await this.roomService.userSubmit(roomKey, userCode, setCode, addedPoint);
 
-    if (response.code == 1) {
+    if (response.code === 1) {
       this.server.to(`room-${roomKey}`).emit('userAnswer', {
         code: SUCCESSFUL,
         message: 'Submit answer successfully',
         data: response.data,
       });
+    }
+
+    return {
+      code: SUCCESSFUL,
+      message: "Submit successfully",
+      data: {},
+    }
+  }
+
+  @SubscribeMessage('displayScore')
+  async displayScore(
+    @MessageBody() roomKey: string
+  ) {
+    this.Logger('displayScore', roomKey);
+    var getGameResult = await this.roomService.getGameResult(roomKey);
+    if (getGameResult.code === 1) {
+      this.server.to(`room-${roomKey}`).emit('endOfMatch', {
+        code: SUCCESSFUL,
+        message: 'Match has ended',
+        data: getGameResult.data,
+      });
+    }
+    
+    var response = await this.roomService.displayScore(roomKey);
+    if (response.code === 1) {
+      return {
+        code: SUCCESSFUL,
+        message: 'return score successfully',
+        data: response.data,
+      }
+    } else {
+      return {
+        code: ROOM_NOT_FOUND,
+        message: 'room not found',
+        data: {},
+      }
     }
   }
 }
