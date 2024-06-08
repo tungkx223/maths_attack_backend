@@ -1,3 +1,6 @@
+import * as dotenv from 'dotenv';
+dotenv.config();
+
 import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
@@ -16,7 +19,7 @@ import { AppGateway } from './app.gateway';
     UserModule,
     RoomModule,
     AuthModule,
-    MongooseModule.forRoot('mongodb+srv://XuanTung:hRLcDoQjYyjyOPwO@cluster0.kkonh7o.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'),
+    MongooseModule.forRoot(process.env.URI),
     JwtModule.register({})
   ],
   controllers: [],
