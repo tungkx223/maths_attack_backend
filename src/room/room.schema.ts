@@ -3,19 +3,19 @@ import { HydratedDocument } from "mongoose";
 
 export type RoomDocument = HydratedDocument<Room>;
 
-export class Player {
-  @Prop({type: [{type: Number}]})
-  point: number[];
+// export class Player {
+//   @Prop({type: [{type: Number}]})
+//   point: number[];
 
-  @Prop({type: Number})
-  mistake: number;
+//   @Prop({type: Number})
+//   mistake: number;
 
-  @Prop({type: Boolean})
-  isPlaying: boolean;
+//   @Prop({type: Boolean})
+//   is_playing: boolean;
 
-  @Prop({type: Number})
-  setWon: number;
-}
+//   @Prop({type: Number})
+//   set_won: number;
+// }
 
 @Schema()
 export class Room {
@@ -23,7 +23,7 @@ export class Room {
   key: string;
 
   @Prop({type: Boolean})
-  isElo: boolean;
+  is_elo: boolean;
 
   @Prop({ type: [{ type: String, ref: 'User' }] })
   members: string[];
@@ -31,17 +31,17 @@ export class Room {
   @Prop({type: [{type: Number}]})
   games: number[];
 
-  @Prop({type: Player})
-  user1: Player;
+  @Prop({type: String})
+  user1: string;
 
-  @Prop({type: Player})
-  user2: Player;
+  @Prop({type: String})
+  user2: string;
 
   @Prop({type: Number})
   current_round: number;
 
   @Prop({type: Boolean})
-  isEndGame: boolean;
+  is_end_game: boolean;
 }
 
 export const RoomSchema = SchemaFactory.createForClass(Room);

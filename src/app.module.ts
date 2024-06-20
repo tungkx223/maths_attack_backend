@@ -13,13 +13,15 @@ import { AuthController } from './auth/auth.controller';
 import { UserController } from './user/user.controller';
 import { RoomController } from './room/room.controller';
 import { AppGateway } from './app.gateway';
+import { PlayerModule } from './player/player.module';
 
 @Module({
   imports: [
     UserModule,
     RoomModule,
     AuthModule,
-    MongooseModule.forRoot(process.env.URI),
+    PlayerModule,
+    MongooseModule.forRoot('mongodb://127.0.0.1:27017/mathsattack'),
     JwtModule.register({})
   ],
   controllers: [],

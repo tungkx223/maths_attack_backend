@@ -3,7 +3,6 @@ import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSo
 import { Server, Socket } from 'socket.io';
 import { RoomService } from './room.service';
 import { ROOM_NOT_FOUND, SUCCESSFUL } from 'src/returnCode';
-import { json } from 'stream/consumers';
 
 @WebSocketGateway()
 export class RoomGateway {
@@ -23,12 +22,12 @@ export class RoomGateway {
   @SubscribeMessage('createRoom')
   async createRoom(
     @ConnectedSocket() client: Socket,
-    @MessageBody() isElo: boolean,
+    @MessageBody() is_elo: boolean,
   ): Promise<any> {
-    this.Logger('createRoom', isElo);
+    this.Logger('createRoom', is_elo);
 
     // create a new room and get room key
-    const roomKey = await this.roomService.createRoom(client.handshake.auth.id, isElo);
+    const roomKey = await this.roomService.createRoom(client.handshake.auth.id, is_elo);
     console.log(roomKey);
     // join client socket to the room
     client.join(`room-${roomKey}`);

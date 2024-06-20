@@ -24,7 +24,7 @@ export class AuthService {
       data: {}
     }
 
-    if (!user.refresh_token) return {
+    if (user.refresh_token) return {
       code: USER_IN_USE,
       message: "This account is already in use.",
       data: {},

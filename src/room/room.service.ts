@@ -5,15 +5,20 @@ import { Document, Model, Types, set } from 'mongoose';
 import { Room, RoomDocument } from './room.schema';
 import { FULL_MEMBER, ROOM_NOT_FOUND, SUCCESSFUL } from 'src/returnCode';
 import { User, UserDocument } from 'src/user/user.schema';
+import { PlayerService } from 'src/player/player.service';
+import { UserService } from 'src/user/user.service';
+import { Player } from 'src/player/player.schema';
 
 @Injectable()
 export class RoomService {
   constructor(
-    @InjectModel(Room.name)
-    private readonly roomModel: Model<RoomDocument>,
+    private playerService: PlayerService,
 
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
+
+    @InjectModel(Room.name)
+    private readonly roomModel: Model<RoomDocument>,
   ) {}
 
   async getAllRooms(): Promise<any> {
@@ -63,30 +68,23 @@ export class RoomService {
     return result;
   }
 
-  async createRoom(owner: string, isElo: boolean): Promise<string> {
+  async createRoom(owner: string, is_elo: boolean): Promise<string> {
     var roomKey = null;
     do {
       roomKey = this.makeKey(8)
     } while (await this.roomModel.findOne({key: roomKey}))
 
+    const user1 = await this.playerService.createPlayer(roomKey, 1);
+    const user2 = await this.playerService.createPlayer(roomKey, 2);
+
     await new this.roomModel({
       key: roomKey,
-      isElo: isElo,
+      is_elo: is_elo,
       members: [owner],
-      user1: {
-        point: [0, 0, 0, 0, 0],
-        mistake: 0,
-        setWon: 0,
-        isPlaying: false,
-      },
-      user2: {
-        point: [0, 0, 0, 0, 0],
-        mistake: 0,
-        setWon: 0,
-        isPlaying: false,
-      },
+      user1: user1,
+      user2: user2,
       current_round: 0,
-      isEndGame: false,
+      is_end_game: false,
     }).save();
 
     return roomKey;
@@ -113,10 +111,6 @@ export class RoomService {
       {members: [ ...room.members, newMember ]}
     ).populate<{ members: UserDocument }>('members')
 
-    // await this.roomModel.findOne(
-    //   {key: roomKey}
-    // )
-
     return {
       code: SUCCESSFUL,
       message: 'join room successfully',
@@ -129,6 +123,8 @@ export class RoomService {
 
     if (room.members.length === 1) {
       await this.roomModel.findOneAndDelete({key: roomKey});
+      await this.playerService.deletePlayer(room.user1);
+      await this.playerService.deletePlayer(room.user2);
       return {
         code: 0,
         index: -1,
@@ -138,79 +134,86 @@ export class RoomService {
 
     const members = room.members;
     const index = members.indexOf(clientUID);
-    
-    room.isEndGame = true;
-    var user1 = await this.userModel.findById(room.members[0]);
-    var user2 = await this.userModel.findById(room.members[1]);
-    
-    var user1_oldElo = user1.elo;
-    var user2_oldElo = user2.elo;
+    var data = {};
 
-    var data: Object;
-    if (index === 0) {
-      room.user1.isPlaying = false;
-      var user1_newElo = this.newElo(user1_oldElo, user2_oldElo, 0, room.isElo);
-      var user2_newElo = this.newElo(user2_oldElo, user1_oldElo, 1, room.isElo);
-
-      var user1_win = user1.win + 1;
-      var user2_lose = user2.lose + 1;
-
-      await this.userModel.findByIdAndUpdate(
-        room.members[0],
-        {elo: user1_newElo, win: user1_win},
+    // thoat game khi chua ket thuc game...
+    if (!room.is_end_game) {
+      await this.roomModel.findOneAndUpdate(
+        {key: roomKey},
+        {is_end_game: true},
       );
-
-      await this.userModel.findByIdAndUpdate(
-        room.members[1],
-        {elo: user2_newElo, lose: user2_lose},
-      );
-
-      data = {
-        outcome: 1,
-        isElo: room.isElo,
-        user1_set: 0,
-        user2_set: 3,
-        user1_oldElo: user1_oldElo,
-        user1_newElo: user1_newElo,
-        user2_oldElo: user2_oldElo,
-        user2_newElo: user2_newElo,
-      }      
-    } else {
-      room.user2.isPlaying = false;
-      var user1_newElo = this.newElo(user1_oldElo, user2_oldElo, 1, room.isElo);
-      var user2_newElo = this.newElo(user2_oldElo, user1_oldElo, 0, room.isElo);
-
-      var user1_lose = user1.lose + 1;
-      var user2_win = user2.win + 1;
-
-      await this.userModel.findByIdAndUpdate(
-        room.members[0],
-        {elo: user1_newElo, lose: user1_lose},
-      );
-
-      await this.userModel.findByIdAndUpdate(
-        room.members[1],
-        {elo: user2_newElo, win: user2_win},
-      );
-
-      data = {
-        outcome: 0,
-        isElo: room.isElo,
-        user1_set: 3,
-        user2_set: 0,
-        user1_oldElo: user1_oldElo,
-        user1_newElo: user1_newElo,
-        user2_oldElo: user2_oldElo,
-        user2_newElo: user2_newElo,
+      
+      var user1 = await this.userModel.findById(room.members[0]);
+      var user2 = await this.userModel.findById(room.members[1]);
+      
+      var user1_oldElo = user1.elo;
+      var user2_oldElo = user2.elo;
+  
+      if (index === 0) {
+        await this.playerService.leaveRoom(room.user1);
+        var user1_newElo = this.newElo(user1_oldElo, user2_oldElo, 0, room.is_elo);
+        var user2_newElo = this.newElo(user2_oldElo, user1_oldElo, 1, room.is_elo);
+  
+        var user1_lose = user1.lose + 1;
+        var user2_win = user2.win + 1;
+  
+        await this.userModel.findByIdAndUpdate(
+          room.members[0],
+          {elo: user1_newElo, win: user1_lose},
+        );
+  
+        await this.userModel.findByIdAndUpdate(
+          room.members[1],
+          {elo: user2_newElo, lose: user2_win},
+        );
+  
+        data = {
+          outcome: 1,
+          is_elo: room.is_elo,
+          user1_set: 0,
+          user2_set: 3,
+          user1_oldElo: user1_oldElo,
+          user1_newElo: user1_newElo,
+          user2_oldElo: user2_oldElo,
+          user2_newElo: user2_newElo,
+        }      
+      } else {
+        await this.playerService.leaveRoom(room.user2);
+        var user1_newElo = this.newElo(user1_oldElo, user2_oldElo, 1, room.is_elo);
+        var user2_newElo = this.newElo(user2_oldElo, user1_oldElo, 0, room.is_elo);
+  
+        var user1_win = user1.win + 1;
+        var user2_lose = user2.lose + 1;
+  
+        await this.userModel.findByIdAndUpdate(
+          room.members[0],
+          {elo: user1_newElo, lose: user1_win},
+        );
+  
+        await this.userModel.findByIdAndUpdate(
+          room.members[1],
+          {elo: user2_newElo, win: user2_lose},
+        );
+  
+        data = {
+          outcome: 0,
+          is_elo: room.is_elo,
+          user1_set: 3,
+          user2_set: 0,
+          user1_oldElo: user1_oldElo,
+          user1_newElo: user1_newElo,
+          user2_oldElo: user2_oldElo,
+          user2_newElo: user2_newElo,
+        }
       }
     }
     
     members.splice(index, 1);
     await this.roomModel.findOneAndUpdate(
       {key: roomKey},
-      {members, user1: user1, user2: user2},
-    );
-
+      {members}
+    )
+    
     return {
       code: 1,
       index: index,
@@ -263,45 +266,39 @@ export class RoomService {
       }
     }
 
-    var updateRoom: Room;
+    var user1: Player, user2: Player;
     if (userCode === 0) {
-      room.user1.isPlaying = false;
-      updateRoom = await this.roomModel.findOneAndUpdate(
-        {key: roomKey},
-        {user1: room.user1},
-        {new: true},
-      );
+      user1 = await this.playerService.setPlay(room.user1, false);
+      user2 = await this.playerService.findPlayer(room.user2);
     } else {
-      room.user2.isPlaying = false;
-      updateRoom = await this.roomModel.findOneAndUpdate(
-        {key: roomKey},
-        {user2: room.user2},
-        {new: true},
-      );
+      user1 = await this.playerService.findPlayer(room.user1);
+      user2 = await this.playerService.setPlay(room.user2, false);
     }
 
+    console.log(user1.is_playing);
+    console.log(user2.is_playing);
+
     // cả 2 người chơi đều hoàn thành phần chơi
-    if (!updateRoom.user1.isPlaying && !updateRoom.user2.isPlaying) {
-      var u1point = updateRoom.user1.point[updateRoom.current_round];
-      var u2point = updateRoom.user2.point[updateRoom.current_round];
+    if (!user1.is_playing && !user2.is_playing) {
+      var u1point = user1.point[room.current_round];
+      var u2point = user2.point[room.current_round];
       var outcome: number;
       
       if (u1point > u2point) {
-        updateRoom.user1.setWon = updateRoom.user1.setWon + 1;
+        await this.playerService.updateAfterSet(room.user1, 1);
         outcome = 0;
       } else if (u2point > u1point) {
-        updateRoom.user2.setWon = updateRoom.user2.setWon + 1;
+        await this.playerService.updateAfterSet(room.user2, 1);
         outcome = 1;
       } else {
-        updateRoom.user1.setWon = updateRoom.user1.setWon + 0.5;
-        updateRoom.user2.setWon = updateRoom.user2.setWon + 0.5;
+        await this.playerService.updateAfterSet(room.user1, 0.5);
+        await this.playerService.updateAfterSet(room.user2, 0.5);
         outcome = 2;
       }
-      updateRoom.current_round += 1;
 
       await this.roomModel.findOneAndUpdate(
         {key: roomKey},
-        {user1: updateRoom.user1, user2: updateRoom.user2, current_round: updateRoom.current_round},
+        {current_round: room.current_round + 1},
       );
       
       // outcome:
@@ -338,40 +335,32 @@ export class RoomService {
       }
     }
 
-    var updateRoom: Room;
+    var user1: Player, user2: Player;
     if (userCode === 0) {
-      room.user1.isPlaying = true;
-      updateRoom = await this.roomModel.findOneAndUpdate(
-        {key: roomKey},
-        {user1: room.user1},
-        {new: true},
-      );
+      user1 = await this.playerService.setPlay(room.user1, true);
+      user2 = await this.playerService.findPlayer(room.user2);
     } else {
-      room.user2.isPlaying = true;
-      updateRoom = await this.roomModel.findOneAndUpdate(
-        {key: roomKey},
-        {user2: room.user2},
-        {new: true},
-      );
+      user1 = await this.playerService.findPlayer(room.user1);
+      user2 = await this.playerService.setPlay(room.user2, true);
     }
 
-    console.log(updateRoom.user1.isPlaying);
-    console.log(updateRoom.user2.isPlaying);
+    if (!user1 || !user2) {
+      return {
+        code: 0,
+        data: {},
+      }
+    }
 
-    if (updateRoom.user1.isPlaying && updateRoom.user2.isPlaying) {
-      updateRoom.user1.mistake = 0;
-      updateRoom.user2.mistake = 0;
+    console.log(user1.is_playing);
+    console.log(user2.is_playing);
 
-      await this.roomModel.findOneAndUpdate(
-        {key: roomKey},
-        {user1: updateRoom.user1, user2: updateRoom.user2},
-      );
+    if (user1.is_playing && user2.is_playing) {
+      await this.playerService.startNewSet(room.user1);
+      await this.playerService.startNewSet(room.user2);
 
       return {
         code: 1,
-        data: {
-          current_round: updateRoom.current_round,
-        },
+        data: {},
       }
     } else {
       return {
@@ -398,55 +387,33 @@ export class RoomService {
     }
 
     if (userCode === 0) {
-      if (addedPoint !== 0) {
-        room.user1.point[setCode] += addedPoint;
-      } else {
-        room.user1.mistake++;
-      }
-
-      const updateRoom = await this.roomModel.findOneAndUpdate(
-        {key: roomKey},
-        {user1: room.user1},
-        {new: true},
-      );
-
+      const player = await this.playerService.addedPoint(room.user1, addedPoint, setCode);
       return {
         code: 1,
         data: {
           player: 0,
           setCode: setCode,
-          point: updateRoom.user1.point[setCode],
-          mistake: updateRoom.user1.mistake,
+          point: player.point[setCode],
+          mistake: player.mistake,
         },
       };
     } else {
-      if (addedPoint !== 0) {
-        room.user2.point[setCode] += addedPoint;
-      } else {
-        room.user2.mistake++;
-      }
-
-      const updateRoom = await this.roomModel.findOneAndUpdate(
-        {key: roomKey},
-        {user2: room.user2},
-        {new: true},
-      );
-
+      const player = await this.playerService.addedPoint(room.user2, addedPoint, setCode);
       return {
         code: 1,
         data: {
           player: 1,
           setCode: setCode,
-          point: updateRoom.user2.point[setCode],
-          mistake: updateRoom.user2.mistake,
+          point: player.point[setCode],
+          mistake: player.mistake,
         },
       };
     }
   }
 
-  newElo(youElo: number, oppElo: number, outcome: number, isElo: boolean) {
+  newElo(youElo: number, oppElo: number, outcome: number, is_elo: boolean) {
     // outcome: 1 = win, 0 = lose, 0.5 = draw...
-    if (!isElo) return youElo;
+    if (!is_elo) return youElo;
 
     var coeff = (youElo >= 2000) ? 10 : 20;
     var expected_score = 1 / (1 + Math.pow(10, (oppElo - youElo) / 400));
@@ -457,23 +424,36 @@ export class RoomService {
 
   async getGameResult(roomKey: string) {
     const room = await this.roomModel.findOne({key: roomKey});
-    if (!room) {
+    if (!room || room.is_end_game) {
       return {
         code: 0,
         data: {},
       }
     }
-    
-    if (room.user1.setWon >= 3) {
-      room.isEndGame = true;
+
+    var user1_setWon = await this.playerService.getSetWon(room.user1);
+    var user2_setWon = await this.playerService.getSetWon(room.user2);
+    if (user1_setWon === -1 || user2_setWon === -1) {
+      return {
+        code: 0,
+        data: {},
+      }
+    }
+
+    if (user1_setWon >= 3) {
+      await this.roomModel.findOneAndUpdate(
+        {key: roomKey},
+        {is_end_game: true},
+      );
+
       var user1 = await this.userModel.findById(room.members[0]);
       var user2 = await this.userModel.findById(room.members[1]);
 
       var user1_oldElo = user1.elo;
       var user2_oldElo = user2.elo;
 
-      var user1_newElo = this.newElo(user1_oldElo, user2_oldElo, 1, room.isElo);
-      var user2_newElo = this.newElo(user2_oldElo, user1_oldElo, 0, room.isElo);
+      var user1_newElo = this.newElo(user1_oldElo, user2_oldElo, 1, room.is_elo);
+      var user2_newElo = this.newElo(user2_oldElo, user1_oldElo, 0, room.is_elo);
 
       var user1_win = user1.win + 1;
       var user2_lose = user2.lose + 1;
@@ -492,9 +472,9 @@ export class RoomService {
         code: 1,
         data: {
           outcome: 0,
-          isElo: room.isElo,
-          user1_set: room.user1.setWon,
-          user2_set: room.user2.setWon,
+          is_elo: room.is_elo,
+          user1_set: user1_setWon,
+          user2_set: user2_setWon,
           user1_oldElo: user1_oldElo,
           user1_newElo: user1_newElo,
           user2_oldElo: user2_oldElo,
@@ -503,16 +483,20 @@ export class RoomService {
       }
     }
 
-    if (room.user2.setWon >= 3) {
-      room.isEndGame = true;
+    if (user2_setWon >= 3) {
+      await this.roomModel.findOneAndUpdate(
+        {key: roomKey},
+        {is_end_game: true},
+      );
+
       var user1 = await this.userModel.findById(room.members[0]);
       var user2 = await this.userModel.findById(room.members[1]);
 
       var user1_oldElo = user1.elo;
       var user2_oldElo = user2.elo;
 
-      var user1_newElo = this.newElo(user1_oldElo, user2_oldElo, 0, room.isElo);
-      var user2_newElo = this.newElo(user2_oldElo, user1_oldElo, 1, room.isElo);
+      var user1_newElo = this.newElo(user1_oldElo, user2_oldElo, 0, room.is_elo);
+      var user2_newElo = this.newElo(user2_oldElo, user1_oldElo, 1, room.is_elo);
 
       var user1_lose = user1.lose + 1;
       var user2_win = user2.win + 1;
@@ -531,9 +515,9 @@ export class RoomService {
         code: 1,
         data: {
           outcome: 1,
-          isElo: room.isElo,
-          user1_set: room.user1.setWon,
-          user2_set: room.user2.setWon,
+          is_elo: room.is_elo,
+          user1_set: user1_setWon,
+          user2_set: user2_setWon,
           user1_oldElo: user1_oldElo,
           user1_newElo: user1_newElo,
           user2_oldElo: user2_oldElo,
@@ -542,16 +526,20 @@ export class RoomService {
       }
     }
 
-    if (room.user1.setWon === 2.5 && room.user2.setWon === 2.5) {
-      room.isEndGame = true;
+    if (user1_setWon === 2.5 && user2_setWon === 2.5) {
+      await this.roomModel.findOneAndUpdate(
+        {key: roomKey},
+        {is_end_game: true},
+      );
+
       var user1 = await this.userModel.findById(room.members[0]);
       var user2 = await this.userModel.findById(room.members[1]);
 
       var user1_oldElo = user1.elo;
       var user2_oldElo = user2.elo;
 
-      var user1_newElo = this.newElo(user1_oldElo, user2_oldElo, 0.5, room.isElo);
-      var user2_newElo = this.newElo(user2_oldElo, user1_oldElo, 0.5, room.isElo);
+      var user1_newElo = this.newElo(user1_oldElo, user2_oldElo, 0.5, room.is_elo);
+      var user2_newElo = this.newElo(user2_oldElo, user1_oldElo, 0.5, room.is_elo);
 
       var user1_draw = user1.draw + 1;
       var user2_draw = user2.draw + 1;
@@ -569,10 +557,10 @@ export class RoomService {
       return {
         code: 1,
         data: {
-          outcome: 1,
-          isElo: room.isElo,
-          user1_set: room.user1.setWon,
-          user2_set: room.user2.setWon,
+          outcome: 2,
+          is_elo: room.is_elo,
+          user1_set: user1_setWon,
+          user2_set: user2_setWon,
           user1_oldElo: user1_oldElo,
           user1_newElo: user1_newElo,
           user2_oldElo: user2_oldElo,
@@ -596,14 +584,23 @@ export class RoomService {
       }
     }
 
+    const user1 = await this.playerService.findPlayer(room.user1);
+    const user2 = await this.playerService.findPlayer(room.user2);
+    if (!user1 || !user2) {
+      return {
+        code: 0,
+        data: {},
+      }
+    }
+
     return {
       code: 1,
       data: {
         current_round: room.current_round,
-        user1_point: room.user1.point,
-        user2_point: room.user2.point,
-        user1_set: room.user1.setWon,
-        user2_set: room.user2.setWon,
+        user1_point:user1.point,
+        user2_point: user2.point,
+        user1_set: user1.set_won,
+        user2_set: user2.set_won,
       },
     }
   }
