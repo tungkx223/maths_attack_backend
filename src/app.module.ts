@@ -9,9 +9,6 @@ import { UserModule } from './user/user.module';
 import { RoomModule } from './room/room.module';
 import { AuthModule } from './auth/auth.module';
 import { GetUsernameMiddleware } from './app.middleware';
-import { AuthController } from './auth/auth.controller';
-import { UserController } from './user/user.controller';
-import { RoomController } from './room/room.controller';
 import { AppGateway } from './app.gateway';
 import { PlayerModule } from './player/player.module';
 
@@ -21,7 +18,7 @@ import { PlayerModule } from './player/player.module';
     RoomModule,
     AuthModule,
     PlayerModule,
-    MongooseModule.forRoot('mongodb://127.0.0.1:27017/mathsattack'),
+    MongooseModule.forRoot(process.env.URI),
     JwtModule.register({})
   ],
   controllers: [],

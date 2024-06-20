@@ -3,20 +3,6 @@ import { HydratedDocument } from "mongoose";
 
 export type RoomDocument = HydratedDocument<Room>;
 
-// export class Player {
-//   @Prop({type: [{type: Number}]})
-//   point: number[];
-
-//   @Prop({type: Number})
-//   mistake: number;
-
-//   @Prop({type: Boolean})
-//   is_playing: boolean;
-
-//   @Prop({type: Number})
-//   set_won: number;
-// }
-
 @Schema()
 export class Room {
   @Prop({ required: true, trim: true, unique: true })

@@ -41,15 +41,10 @@ export class AppGateway {
 
     this.logger.log(`client socket connected: ${client.id}`);
     this.logger.log(`client socket join room: ${userData.id}`);
-    // console.log("connection to socket... token = ", client.handshake.query.token);
     
     client.on('disconnecting', (reason) => {
       this.logger.log(`client disconnected ${client.id}`);
       this.roomGateway.leaveRoom(client);
     })
   }
-
-  // handleDisconnect(@ConnectedSocket() client: Socket) {
-  //   console.log(client.rooms);
-  // }
 }
