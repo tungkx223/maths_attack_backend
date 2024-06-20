@@ -414,8 +414,9 @@ export class RoomService {
   newElo(youElo: number, oppElo: number, outcome: number, is_elo: boolean) {
     // outcome: 1 = win, 0 = lose, 0.5 = draw...
     if (!is_elo) return youElo;
-
     var expected_score = 1 / (1 + Math.pow(10, (oppElo - youElo) / 400));
+    
+    // coefficient = 16...
     var newElo = youElo + 16 * (outcome - expected_score);
     var newEloRounded = Math.round(newElo * 100) / 100;
     return newEloRounded;
