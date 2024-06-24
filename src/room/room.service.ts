@@ -159,12 +159,12 @@ export class RoomService {
   
         await this.userModel.findByIdAndUpdate(
           room.members[0],
-          {elo: user1_newElo, win: user1_lose},
+          {elo: user1_newElo, lose: user1_lose},
         );
   
         await this.userModel.findByIdAndUpdate(
           room.members[1],
-          {elo: user2_newElo, lose: user2_win},
+          {elo: user2_newElo, win: user2_win},
         );
   
         data = {
@@ -187,12 +187,12 @@ export class RoomService {
   
         await this.userModel.findByIdAndUpdate(
           room.members[0],
-          {elo: user1_newElo, lose: user1_win},
+          {elo: user1_newElo, win: user1_win},
         );
   
         await this.userModel.findByIdAndUpdate(
           room.members[1],
-          {elo: user2_newElo, win: user2_lose},
+          {elo: user2_newElo, lose: user2_lose},
         );
   
         data = {
