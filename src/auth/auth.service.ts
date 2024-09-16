@@ -103,7 +103,7 @@ export class AuthService {
         {id, username},
         {
           secret: jwtConstants.secret,
-          expiresIn: '8h',
+          expiresIn: '300s',
         }
       ),
       this.jwtService.signAsync(
