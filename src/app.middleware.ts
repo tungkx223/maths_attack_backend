@@ -1,6 +1,6 @@
 import {
-  Injectable, NestMiddleware, HttpException,
-  HttpStatus
+  Injectable, NestMiddleware, HttpStatus, HttpException,
+  UnauthorizedException
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { NextFunction, Response } from 'express';
@@ -16,11 +16,7 @@ export class GetUsernameMiddleware implements NestMiddleware {
   async use(req: any, res: Response, next: NextFunction) {
     // check authorization exists
     const authorization = req.headers.authorization;
-    if (!authorization) throw new HttpException({
-      code: HttpStatus.UNAUTHORIZED, 
-      message: 'Unauthorized',
-      data: {},
-    }, HttpStatus.UNAUTHORIZED);
+    if (!authorization) throw new UnauthorizedException();
     
     // get user data from access token
     const userData = this.jwtService.decode(
@@ -28,28 +24,15 @@ export class GetUsernameMiddleware implements NestMiddleware {
       { json: true },
     ) as { username: string; id: string };
     
-    if (!userData) throw new HttpException({
-      code: HttpStatus.UNAUTHORIZED, 
-      message: 'Unauthorized',
-      data: {},
-    }, HttpStatus.UNAUTHORIZED);
+    if (!userData) throw new UnauthorizedException();
 
     // get username and user id from user data
     req.username = userData?.username;
     req.uid = userData?.id
 
     const user = await this.userService.findUserById(req.uid)
-    if (!user) throw new HttpException({
-      code: HttpStatus.UNAUTHORIZED, 
-      message: 'User not found',
-      data: {},
-    }, HttpStatus.UNAUTHORIZED);
-    
-    if (user.username !== req.username) throw new HttpException({
-      code: HttpStatus.UNAUTHORIZED, 
-      message: 'Wrong username',
-      data: {},
-    }, HttpStatus.UNAUTHORIZED);
+    if (!user) throw new UnauthorizedException('user not found');
+    if (user.username !== req.username) throw new UnauthorizedException('wrong username');
     
     next();
   }
