@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { compare } from 'bcrypt';
+import * as jwt from 'jsonwebtoken';
 
 import { SUCCESSFUL, USER_IN_USE, WRONG_PASSWORD, WRONG_USERNAME } from 'src/returnCode';
 import { UserService } from 'src/user/user.service';
@@ -73,12 +74,36 @@ export class AuthService {
     }
   }
 
+  isRefreshTokenExpired(token: string, secret: string): boolean {
+    try {
+      // Giải mã token mà không cần xác thực để lấy thông tin về thời gian hết hạn
+      const decoded = jwt.verify(token, secret) as jwt.JwtPayload;
+  
+      // Kiểm tra thời gian hiện tại với thời gian hết hạn của token
+      
+      // Thời gian hiện tại (tính bằng giây)
+      const currentTime = Math.floor(Date.now() / 1000);
+
+      // Nếu token không có `exp` thì coi như đã hết hạn
+      return decoded.exp ? currentTime > decoded.exp : true; 
+    } catch (error) {
+      // Nếu xảy ra lỗi trong quá trình giải mã (ví dụ token không hợp lệ), ta coi như token đã hết hạn
+      return true;
+    }
+  }
+
   async refreshTokens(username: string, refreshToken: string) {
     // find user by username
     const user = await this.userService.findUser(username);
 
     // check user exists and user's refresh token
     if (!user || !user.refresh_token) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    // check refresh token expired
+    if (this.isRefreshTokenExpired(refreshToken, jwtConstants.refresh_secret)) {
+      await this.userService.updateRefreshToken(username, null);
       throw new ForbiddenException('Access denied');
     }
 
@@ -110,7 +135,7 @@ export class AuthService {
         {id, username},
         {
           secret: jwtConstants.refresh_secret,
-          expiresIn: '365d',
+          expiresIn: '30d',
         }
       ),
     ]);

@@ -63,7 +63,6 @@ export class AuthController {
   }
 
   @Get('refresh-token')
-  @UseGuards(RefreshTokenGuard)
   refreshToken(@Req() req: any) {
     this.Logger('refreshToken');
 
