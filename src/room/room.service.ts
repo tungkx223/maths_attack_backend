@@ -156,61 +156,131 @@ export class RoomService {
   
       if (index === 0) {
         await this.playerService.leaveRoom(room.user1);
-        var user1_newElo = this.newElo(user1_oldElo, user2_oldElo, 0, room.is_elo);
-        var user2_newElo = this.newElo(user2_oldElo, user1_oldElo, 1, room.is_elo);
+        var user1_setWon = await this.playerService.getSetWon(room.user1);
+        var user2_setWon = await this.playerService.getSetWon(room.user2);
+
+        if (user1_setWon > user2_setWon + 1) {
+          // draw game if user1 still have an advantage of more than 1 set when disconnect... 
+          var user1_newElo = this.newElo(user1_oldElo, user2_oldElo, 0.5, room.is_elo);
+          var user2_newElo = this.newElo(user2_oldElo, user1_oldElo, 0.5, room.is_elo);
   
-        var user1_lose = user1.lose + 1;
-        var user2_win = user2.win + 1;
+          var user1_draw = user1.draw + 1;
+          var user2_draw = user2.draw + 1;
+
+          await this.userModel.findByIdAndUpdate(
+            oldMembers[0],
+            {elo: user1_newElo, draw: user1_draw},
+          );
+
+          await this.userModel.findByIdAndUpdate(
+            oldMembers[1],
+            {elo: user2_newElo, draw: user2_draw},
+          );
   
-        await this.userModel.findByIdAndUpdate(
-          oldMembers[0],
-          {elo: user1_newElo, lose: user1_lose},
-        );
+          data = {
+            outcome: 2,
+            is_elo: room.is_elo,
+            is_forfeit: true,
+            user1_set: 2.5,
+            user2_set: 2.5,
+            user1_oldElo: user1_oldElo,
+            user1_newElo: user1_newElo,
+            user2_oldElo: user2_oldElo,
+            user2_newElo: user2_newElo,
+          }
+        } else {
+          // lose game if user1 does not have a big advantage when disconnect (quit)...
+          var user1_newElo = this.newElo(user1_oldElo, user2_oldElo, 0, room.is_elo);
+          var user2_newElo = this.newElo(user2_oldElo, user1_oldElo, 1, room.is_elo);
   
-        await this.userModel.findByIdAndUpdate(
-          oldMembers[1],
-          {elo: user2_newElo, win: user2_win},
-        );
+          var user1_lose = user1.lose + 1;
+          var user2_win = user2.win + 1;
   
-        data = {
-          outcome: 1,
-          is_elo: room.is_elo,
-          is_forfeit: true,
-          user1_set: 0,
-          user2_set: 3,
-          user1_oldElo: user1_oldElo,
-          user1_newElo: user1_newElo,
-          user2_oldElo: user2_oldElo,
-          user2_newElo: user2_newElo,
-        }      
+          await this.userModel.findByIdAndUpdate(
+            oldMembers[0],
+            {elo: user1_newElo, lose: user1_lose},
+          );
+  
+          await this.userModel.findByIdAndUpdate(
+            oldMembers[1],
+            {elo: user2_newElo, win: user2_win},
+          );
+  
+          data = {
+            outcome: 1,
+            is_elo: room.is_elo,
+            is_forfeit: true,
+            user1_set: 0,
+            user2_set: 3,
+            user1_oldElo: user1_oldElo,
+            user1_newElo: user1_newElo,
+            user2_oldElo: user2_oldElo,
+            user2_newElo: user2_newElo,
+          }
+        }
       } else {
         await this.playerService.leaveRoom(room.user2);
-        var user1_newElo = this.newElo(user1_oldElo, user2_oldElo, 1, room.is_elo);
-        var user2_newElo = this.newElo(user2_oldElo, user1_oldElo, 0, room.is_elo);
+        var user1_setWon = await this.playerService.getSetWon(room.user1);
+        var user2_setWon = await this.playerService.getSetWon(room.user2);
+
+        if (user2_setWon > user1_setWon + 1) {
+          // draw game if user2 still have an advantage of more than 1 set when disconnect... 
+          var user1_newElo = this.newElo(user1_oldElo, user2_oldElo, 0.5, room.is_elo);
+          var user2_newElo = this.newElo(user2_oldElo, user1_oldElo, 0.5, room.is_elo);
   
-        var user1_win = user1.win + 1;
-        var user2_lose = user2.lose + 1;
+          var user1_draw = user1.draw + 1;
+          var user2_draw = user2.draw + 1;
+
+          await this.userModel.findByIdAndUpdate(
+            oldMembers[0],
+            {elo: user1_newElo, draw: user1_draw},
+          );
+
+          await this.userModel.findByIdAndUpdate(
+            oldMembers[1],
+            {elo: user2_newElo, draw: user2_draw},
+          );
   
-        await this.userModel.findByIdAndUpdate(
-          oldMembers[0],
-          {elo: user1_newElo, win: user1_win},
-        );
+          data = {
+            outcome: 2,
+            is_elo: room.is_elo,
+            is_forfeit: true,
+            user1_set: 2.5,
+            user2_set: 2.5,
+            user1_oldElo: user1_oldElo,
+            user1_newElo: user1_newElo,
+            user2_oldElo: user2_oldElo,
+            user2_newElo: user2_newElo,
+          }
+        } else {
+          // lose game if user2 does not have a big advantage when disconnect (quit)...
+          var user1_newElo = this.newElo(user1_oldElo, user2_oldElo, 1, room.is_elo);
+          var user2_newElo = this.newElo(user2_oldElo, user1_oldElo, 0, room.is_elo);
   
-        await this.userModel.findByIdAndUpdate(
-          oldMembers[1],
-          {elo: user2_newElo, lose: user2_lose},
-        );
+          var user1_win = user1.win + 1;
+          var user2_lose = user2.lose + 1;
   
-        data = {
-          outcome: 0,
-          is_elo: room.is_elo,
-          is_forfeit: true,
-          user1_set: 3,
-          user2_set: 0,
-          user1_oldElo: user1_oldElo,
-          user1_newElo: user1_newElo,
-          user2_oldElo: user2_oldElo,
-          user2_newElo: user2_newElo,
+          await this.userModel.findByIdAndUpdate(
+            oldMembers[0],
+            {elo: user1_newElo, win: user1_win},
+          );
+  
+          await this.userModel.findByIdAndUpdate(
+            oldMembers[1],
+            {elo: user2_newElo, lose: user2_lose},
+          );
+  
+          data = {
+            outcome: 0,
+            is_elo: room.is_elo,
+            is_forfeit: true,
+            user1_set: 3,
+            user2_set: 0,
+            user1_oldElo: user1_oldElo,
+            user1_newElo: user1_newElo,
+            user2_oldElo: user2_oldElo,
+            user2_newElo: user2_newElo,
+          }
         }
       }
     }
