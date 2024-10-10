@@ -6,8 +6,14 @@ import { ROOM_NOT_FOUND, SUCCESSFUL } from 'src/returnCode';
 
 @WebSocketGateway()
 export class RoomGateway {
+  
   @WebSocketServer()
-  server: Server;
+  server = new Server(3000, {
+    connectionStateRecovery: {
+      maxDisconnectionDuration: 10 * 1000,  // 20 seconds
+      skipMiddlewares: true,
+    }
+  });
 
   constructor(
     private readonly roomService: RoomService,

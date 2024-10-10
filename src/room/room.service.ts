@@ -6,7 +6,6 @@ import { Room, RoomDocument } from './room.schema';
 import { FULL_MEMBER, ROOM_NOT_FOUND, SUCCESSFUL } from 'src/returnCode';
 import { User, UserDocument } from 'src/user/user.schema';
 import { PlayerService } from 'src/player/player.service';
-import { UserService } from 'src/user/user.service';
 import { Player } from 'src/player/player.schema';
 
 @Injectable()
@@ -266,6 +265,36 @@ export class RoomService {
       }
     }
 
+    // set da ket thuc nhung nguoi choi chua nhan duoc thong bao...
+    // gui thong bao muon...
+    if (!user1.is_playing && !user2.is_playing) {
+      var u1point = user1.point[room.current_round - 1];
+      var u2point = user2.point[room.current_round - 1];
+      var outcome: number;
+      var setCode = room.current_round - 1;
+
+      if (u1point > u2point) {
+        // user1 thắng
+        outcome = 0;
+      } else if (u2point > u1point) {
+        // user2 thắng
+        outcome = 1;
+      } else {
+        // kết quả hòa
+        outcome = 2;
+      }
+
+      return {
+        code: 1,
+        data: {
+          user1_point: u1point,
+          user2_point: u2point,
+          outcome: outcome,
+          setCode: setCode,
+        },
+      }
+    }
+
     var user1: Player, user2: Player;
     if (userCode === 0) {
       user1 = await this.playerService.setPlay(room.user1, false);
@@ -283,6 +312,7 @@ export class RoomService {
       var u1point = user1.point[room.current_round];
       var u2point = user2.point[room.current_round];
       var outcome: number;
+      var setCode = room.current_round;
       
       if (u1point > u2point) {
         await this.playerService.updateAfterSet(room.user1, 1);
@@ -311,6 +341,7 @@ export class RoomService {
           user1_point: u1point,
           user2_point: u2point,
           outcome: outcome,
+          setCode: setCode,
         },
       }
     } else {

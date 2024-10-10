@@ -4,7 +4,6 @@ import { UserService } from 'src/user/user.service';
 import { ChangePasswordDto, SignInDto, SignUpDto } from './auth.dto';
 import { NULL_DATA } from 'src/returnCode';
 import { AccessTokenGuard } from './guards/accessToken.guard';
-import { RefreshTokenGuard } from './guards/refreshToken.guard';
 
 @Controller('api/auth')
 export class AuthController {
