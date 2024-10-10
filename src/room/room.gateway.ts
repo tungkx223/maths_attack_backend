@@ -119,12 +119,14 @@ export class RoomGateway {
     const data = JSON.parse(message);
     var roomKey = data.roomKey;
     var userCode = data.userCode;
+    var setCode = data.setCode;
 
     this.Logger('userEndSet', JSON.stringify({
       'roomKey': roomKey,
       'userCode': userCode,
+      'setCode': setCode,
     }));
-    var response = await this.roomService.userEndSet(roomKey, userCode);
+    var response = await this.roomService.userEndSet(roomKey, userCode, setCode);
 
     // all player has ended their playing session...
     if (response.code === 1) {
