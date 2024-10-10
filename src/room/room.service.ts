@@ -169,6 +169,7 @@ export class RoomService {
         data = {
           outcome: 1,
           is_elo: room.is_elo,
+          is_forfeit: true,
           user1_set: 0,
           user2_set: 3,
           user1_oldElo: user1_oldElo,
@@ -197,6 +198,7 @@ export class RoomService {
         data = {
           outcome: 0,
           is_elo: room.is_elo,
+          is_forfeit: true,
           user1_set: 3,
           user2_set: 0,
           user1_oldElo: user1_oldElo,
@@ -299,7 +301,7 @@ export class RoomService {
       user1 = await this.playerService.setPlay(room.user1, false);
       user2 = await this.playerService.findPlayer(room.user2);
     } else {
-      user1 = await this.playerService.findPlayer(room.user1);;
+      user1 = await this.playerService.findPlayer(room.user1);
       user2 = await this.playerService.setPlay(room.user2, false);
     }
 
@@ -504,6 +506,7 @@ export class RoomService {
         data: {
           outcome: 0,
           is_elo: room.is_elo,
+          is_forfeit: false,
           user1_set: user1_setWon,
           user2_set: user2_setWon,
           user1_oldElo: user1_oldElo,
@@ -547,6 +550,7 @@ export class RoomService {
         data: {
           outcome: 1,
           is_elo: room.is_elo,
+          is_forfeit: false,
           user1_set: user1_setWon,
           user2_set: user2_setWon,
           user1_oldElo: user1_oldElo,
@@ -590,6 +594,7 @@ export class RoomService {
         data: {
           outcome: 2,
           is_elo: room.is_elo,
+          is_forfeit: false,
           user1_set: user1_setWon,
           user2_set: user2_setWon,
           user1_oldElo: user1_oldElo,
