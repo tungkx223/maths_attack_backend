@@ -50,9 +50,9 @@ export class AppGateway {
       // 10 seconds (same as maxDisconnectionDuration)
       const timer = setTimeout(() => {
         console.log(`Client ${client.id} failed to reconnect, removing from room`);
-        this.logger.log(`client disconnected ${client.id}`);
         this.roomGateway.leaveRoom(client);
         delete this.disconnectTimers[client.id];
+        this.logger.log(`client disconnected ${client.id}`);
       }, 10 * 1000);  
   
       this.disconnectTimers[client.id] = timer;
