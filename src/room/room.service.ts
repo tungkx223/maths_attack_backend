@@ -132,10 +132,11 @@ export class RoomService {
     }
 
     const oldMembers = room.members;
+    const members = room.members;
     const index = oldMembers.indexOf(clientUID);
     var data = {};
 
-    const members = oldMembers.splice(index, 1);
+    members.splice(index, 1);
     await this.roomModel.findOneAndUpdate(
       {key: roomKey},
       {members: members}
