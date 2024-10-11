@@ -21,6 +21,9 @@ export class AppGateway {
     private readonly roomGateway: RoomGateway
   ) {}
 
+  @WebSocketServer()
+  server: Server;
+
   private readonly logger = new Logger(AppGateway.name);
 
   async handleConnection(@ConnectedSocket() client: Socket) {

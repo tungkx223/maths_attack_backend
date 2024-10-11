@@ -74,11 +74,11 @@ export class RoomGateway {
   async leaveRoom(
     @ConnectedSocket() client: Socket,
   ): Promise<any> {
+    this.Logger('leaveRoom');
     
     client.rooms.forEach(async (e) => {
       if (e.includes('room')) {
         const roomKey = e.replace('room-', '');
-        this.Logger('leaveRoom');
         var response = await this.roomService.leaveRoom(client.handshake.auth.id, roomKey);
         if (response.code === 1) {
           this.server.to(e).emit('endOfMatch', {
