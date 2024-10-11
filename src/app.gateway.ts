@@ -42,8 +42,9 @@ export class AppGateway {
     this.logger.log(`client socket connected: ${client.id}`);
     this.logger.log(`client socket join room: ${userData.id}`);
     
-    // Handle disconnection
-    client.on('disconnect', (_) => {
+    // Handle disconnection before connection closed
+    // => use disconnecting instead of disconnect
+    client.on('disconnecting', (_) => {
       this.logger.log(`client disconnected ${client.id}`);
       this.roomGateway.leaveRoom(client);
     });
