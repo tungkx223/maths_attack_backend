@@ -306,6 +306,11 @@ export class RoomService {
     numbers.sort(() => Math.random() - 0.5);
     var games = numbers.slice(0, 5);
 
+    await this.roomModel.findOneAndUpdate(
+      {key: roomKey},
+      {games: games},
+    )
+
     return {
       code: 1,
       data: {
