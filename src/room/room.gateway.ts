@@ -33,6 +33,7 @@ export class RoomGateway {
     client.join(`room-${roomKey}`);
 
     this.logger.log(`client: ${client.id} join room: room-${roomKey}`);
+    this.logger.log(`Client rooms: ${client.rooms.size}`);
     return {
       code: SUCCESSFUL,
       message: 'createRoom successfully',
@@ -50,14 +51,15 @@ export class RoomGateway {
     const joinRoomData = await this.roomService.joinRoom(
       client.handshake.auth.id,
       roomKey
-    )
+    );
 
     if (joinRoomData.code) return joinRoomData;
 
-    this.logger.log(`client: ${client.id} join room: room-${roomKey}`);
-
     if (roomKey) await client.join(`room-${roomKey}`);
     var response = await this.roomService.checkStartGame(roomKey);
+
+    this.logger.log(`client: ${client.id} join room: room-${roomKey}`);
+    this.logger.log(`Client rooms: ${client.rooms.size}`);
     
     if (response.code === 1) {
       this.server.to(`room-${roomKey}`).emit('startGame', {
