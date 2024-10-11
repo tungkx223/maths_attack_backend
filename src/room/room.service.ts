@@ -131,16 +131,9 @@ export class RoomService {
       };
     }
 
-    const oldMembers = room.members;
     const members = room.members;
-    const index = oldMembers.indexOf(clientUID);
+    const index = members.indexOf(clientUID);
     var data = {};
-
-    members.splice(index, 1);
-    await this.roomModel.findOneAndUpdate(
-      {key: roomKey},
-      {members: members}
-    )
 
     // thoat game khi chua ket thuc game...
     if (!room.is_end_game) {
@@ -149,8 +142,8 @@ export class RoomService {
         {is_end_game: true},
       );
       
-      var user1 = await this.userModel.findById(oldMembers[0]);
-      var user2 = await this.userModel.findById(oldMembers[1]);
+      var user1 = await this.userModel.findById(members[0]);
+      var user2 = await this.userModel.findById(members[1]);
       
       var user1_oldElo = user1.elo;
       var user2_oldElo = user2.elo;
@@ -169,12 +162,12 @@ export class RoomService {
           var user2_draw = user2.draw + 1;
 
           await this.userModel.findByIdAndUpdate(
-            oldMembers[0],
+            members[0],
             {elo: user1_newElo, draw: user1_draw},
           );
 
           await this.userModel.findByIdAndUpdate(
-            oldMembers[1],
+            members[1],
             {elo: user2_newElo, draw: user2_draw},
           );
   
@@ -198,12 +191,12 @@ export class RoomService {
           var user2_win = user2.win + 1;
   
           await this.userModel.findByIdAndUpdate(
-            oldMembers[0],
+            members[0],
             {elo: user1_newElo, lose: user1_lose},
           );
   
           await this.userModel.findByIdAndUpdate(
-            oldMembers[1],
+            members[1],
             {elo: user2_newElo, win: user2_win},
           );
   
@@ -233,12 +226,12 @@ export class RoomService {
           var user2_draw = user2.draw + 1;
 
           await this.userModel.findByIdAndUpdate(
-            oldMembers[0],
+            members[0],
             {elo: user1_newElo, draw: user1_draw},
           );
 
           await this.userModel.findByIdAndUpdate(
-            oldMembers[1],
+            members[1],
             {elo: user2_newElo, draw: user2_draw},
           );
   
@@ -262,12 +255,12 @@ export class RoomService {
           var user2_lose = user2.lose + 1;
   
           await this.userModel.findByIdAndUpdate(
-            oldMembers[0],
+            members[0],
             {elo: user1_newElo, win: user1_win},
           );
   
           await this.userModel.findByIdAndUpdate(
-            oldMembers[1],
+            members[1],
             {elo: user2_newElo, lose: user2_lose},
           );
   
@@ -285,6 +278,12 @@ export class RoomService {
         }
       }
     }
+
+    members.splice(index, 1);
+    await this.roomModel.findOneAndUpdate(
+      {key: roomKey},
+      {members: members}
+    )
     
     return {
       code: 1,
