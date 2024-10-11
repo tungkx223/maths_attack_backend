@@ -131,9 +131,16 @@ export class RoomService {
       };
     }
 
-    const members = room.members;
+    const members = [...room.members];
+    const newMembers = room.members;
     const index = members.indexOf(clientUID);
     var data = {};
+
+    newMembers.splice(index, 1);
+    await this.roomModel.findOneAndUpdate(
+      {key: roomKey},
+      {members: newMembers}
+    )
 
     // thoat game khi chua ket thuc game...
     if (!room.is_end_game) {
@@ -278,12 +285,6 @@ export class RoomService {
         }
       }
     }
-
-    members.splice(index, 1);
-    await this.roomModel.findOneAndUpdate(
-      {key: roomKey},
-      {members: members}
-    )
     
     return {
       code: 1,
