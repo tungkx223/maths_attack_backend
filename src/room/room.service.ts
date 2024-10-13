@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Document, Model, Types, set } from 'mongoose';
+import { Model } from 'mongoose';
 
 import { Room, RoomDocument } from './room.schema';
 import { FULL_MEMBER, ROOM_NOT_FOUND, SUCCESSFUL } from 'src/returnCode';
@@ -386,10 +386,9 @@ export class RoomService {
 
     // cả 2 người chơi đều hoàn thành phần chơi
     if (!user1.is_playing && !user2.is_playing) {
-      var u1point = user1.point[room.current_round];
-      var u2point = user2.point[room.current_round];
+      var u1point = user1.point[setCode];
+      var u2point = user2.point[setCode];
       var outcome: number;
-      var setCode = room.current_round;
       
       if (u1point > u2point) {
         await this.playerService.updateAfterSet(room.user1, 1);
@@ -405,7 +404,7 @@ export class RoomService {
 
       await this.roomModel.findOneAndUpdate(
         {key: roomKey},
-        {current_round: room.current_round + 1},
+        {current_round: setCode + 1},
       );
       
       // outcome:
